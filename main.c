@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BASE_TIME_INTERVAL 80 /* in microseconds */
+#define BASE_TIME_INTERVAL 150 /* in microseconds */
 #define SPEED_INCREASE 1.03
-#define GAME_ROWS 15
-#define GAME_COLUMNS 7
+#define GAME_ROWS 26
+#define GAME_COLUMNS 5
 
 #define MIN(a, b) ((a < b) ? a : b)
 #define MAX(a, b) ((a > b) ? a : b)
@@ -25,18 +25,18 @@ void print_board() {
 	int i, j;
     SDL_Rect src, dest;
 
-	for (i = 0; i < 15; i++) {
-		for (j = 0; j < 7 ; j++) {
+	for (i = 0; i < GAME_ROWS; i++) {
+		for (j = 0; j < GAME_COLUMNS ; j++) {
 			if (array_matrix[i][j] == 1) {
 				src.x = 0;
 				src.y = 0;
 				src.w = 65; 
 				src.h = 65;
 
-				dest.x = j * 67 + 2;
-				dest.y = i * 67 + 2;
-				dest.w = 65;
-				dest.h = 65;
+				dest.x = j * 48 + 474;
+				dest.y = i * 40 + 282;
+				dest.w = 45;
+				dest.h = 37;
 
 				SDL_BlitSurface(block, &src, screen, &dest);
 			}
