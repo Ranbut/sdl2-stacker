@@ -14,7 +14,9 @@ int array_matrix[GAME_ROWS][GAME_COLUMNS];
 
 static SDL_Window *window;
 static SDL_Surface *screen;
-static SDL_Surface *image;
+static SDL_Surface *block;
+static SDL_Surface *background;
+static SDL_Surface *prize;
 
 /* Use the array_matrix to  indicate where to blit red sqares on the board.
  * Also do some arithmetic to get them to print in the proper place, given
@@ -36,10 +38,27 @@ void print_board() {
 				dest.w = 65;
 				dest.h = 65;
 
-				SDL_BlitSurface(image, &src, screen, &dest);
+				SDL_BlitSurface(block, &src, screen, &dest);
 			}
 		}
 	}
+}
+
+void print_background(){
+    SDL_Rect src, dest;
+
+	src.x = 0;
+	src.y = 0;
+	src.w = 351; 
+	src.h = 290;
+
+	dest.x = 55;
+	dest.y = 308;
+	dest.w = 351;
+	dest.h = 290;
+
+	SDL_BlitSurface(background, 0, screen, 0);
+	SDL_BlitSurface(prize, &src, screen, &dest);
 }
 
 /* Level is the active row, with level 1 being the bottom. 
@@ -128,6 +147,7 @@ void game_loop() {
 			if (x_pos <= 0) 
 				left_or_right = 1;
 			update_board(x_pos, length, current_level);
+			print_background();
 			print_board();
 			x_pos = x_pos + left_or_right;
 			SDL_Delay(time_delay);
@@ -150,7 +170,7 @@ int main(int argc, char *argv[])
 	window = SDL_CreateWindow("SDL2 Window",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
-                                          471, 1007,
+                                          768, 1364,
                                           0);
 
     if (window == NULL) {
@@ -162,15 +182,27 @@ int main(int argc, char *argv[])
 
     /* Load the bitmap file. SDL_LoadBMP returns a pointer to a
        new surface containing the loaded image. */
-    image = SDL_LoadBMP("square.bmp");
-    if (image == NULL) {
+    block = SDL_LoadBMP("square.bmp");
+    background = SDL_LoadBMP("background.bmp");
+    prize = SDL_LoadBMP("prize.bmp");
+    if (block == NULL) {
 		printf("Unable to load bitmap.\n");
+		return 1;
+    }
+	if (background == NULL) {
+		printf("Unable to load bitmap.\n");
+		return 1;
+    }
+	if (prize == NULL) {
+		printf("Unable to load bitmap prize.\n");
 		return 1;
     }
 	game_loop();
 
     /* Free the memory that was allocated to the bitmap. */
-    SDL_FreeSurface(image);
+    SDL_FreeSurface(block);
+    SDL_FreeSurface(background);
+    SDL_FreeSurface(prize);
 
     return 0;
 }
