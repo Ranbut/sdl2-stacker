@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include <iostream>
 
 #define BASE_TIME_INTERVAL 150 /* in microseconds */
 #define SPEED_INCREASE 1.03
@@ -12,16 +13,41 @@
 
 int array_matrix[GAME_ROWS][GAME_COLUMNS];
 
-static SDL_Window *window;
-static SDL_Surface *screen;
-static SDL_Surface *block;
-static SDL_Surface *background;
-static SDL_Surface *prize;
+//Images
+SDL_Window *window;
+SDL_Renderer *renderer;
+
+SDL_Texture *block;
+SDL_Texture *background;
+SDL_Texture *prize;
+
+//Font
+TTF_Font *fontCredit = TTF_OpenFont("arial.ttf", 40);
+SDL_Color colorCredit = { 255, 255, 255, 255 };
+SDL_Surface *surfaceCredit = TTF_RenderText_Solid(fontCredit, "Aqui está o credito", colorCredit);
+SDL_Texture *textCredit = SDL_CreateTextureFromSurface(renderer, surfaceCredit);
+
+SDL_Texture *LoadTexture(std::string filePath, SDL_Renderer *renderTarget){
+	SDL_Texture *texture = nullptr;
+	SDL_Surface *surface = SDL_LoadBMP(filePath.c_str());
+
+	if(surface == NULL)
+		std::cout << "Error in creating surface" << std::endl;
+	else{
+		texture = SDL_CreateTextureFromSurface(renderTarget, surface);
+		if(texture == NULL)
+			std::cout << "Error in creating texture" << std::endl;
+	}
+	
+	SDL_FreeSurface(surface);
+
+	return texture;
+}
 
 /* Use the array_matrix to  indicate where to blit red sqares on the board.
  * Also do some arithmetic to get them to print in the proper place, given
  * the size of each block is 65 */
-void print_board() {
+void RenderBoard() {
 	int i, j;
     SDL_Rect src, dest;
 
@@ -38,13 +64,13 @@ void print_board() {
 				dest.w = 45;
 				dest.h = 37;
 
-				SDL_BlitSurface(block, &src, screen, &dest);
+				SDL_RenderCopy(renderer, block, &src, &dest);
 			}
 		}
 	}
 }
 
-void print_background(){
+void RenderBackground(){
     SDL_Rect src, dest;
 
 	src.x = 0;
@@ -57,8 +83,16 @@ void print_background(){
 	dest.w = 351;
 	dest.h = 290;
 
-	SDL_BlitSurface(background, 0, screen, 0);
-	SDL_BlitSurface(prize, &src, screen, &dest);
+	SDL_RenderCopy(renderer, background, 0, 0);
+	SDL_RenderCopy(renderer, prize, &src, &dest);
+}
+
+void RenderCredit(){
+	SDL_Rect textRect;
+	textRect.x = textRect.y = 0;
+
+	SDL_QueryTexture(textCredit, NULL, NULL, &textRect.w, &textRect.h);
+	SDL_RenderCopy(renderer, textCredit, NULL, &textRect);
 }
 
 /* Level is the active row, with level 1 being the bottom. 
@@ -69,7 +103,7 @@ void print_background(){
 		4 = right side
    underflow_ammt is the number of columns that go off the side of the screen.
 */
-void update_board(int x_pos, int length, int level) {
+void UpdateBoard(int x_pos, int length, int level) {
 	int underflow_ammt = length - 1;
 	int j;
 
@@ -88,7 +122,7 @@ void update_board(int x_pos, int length, int level) {
 
 /* Checks to see that there are blocks supporting the current level and returns
  * the number of blocks that should exist on the next level */
-int get_new_length(int level) {
+int GetNewLength(int level) {
 	int i;
 	int length = 0;
 
@@ -109,7 +143,7 @@ int get_new_length(int level) {
 	return length;
 }
 
-void game_loop() {
+void GameLoop() {
 	int time_delay = BASE_TIME_INTERVAL;
 	int left_or_right = 1;
 	int current_level = 1;
@@ -124,7 +158,7 @@ void game_loop() {
 			switch(event.type) {
 				case SDL_KEYDOWN: 
 					if (event.key.keysym.sym == SDLK_SPACE) {
-						length = get_new_length(current_level);
+						length = GetNewLength(current_level);
 						underflow_ammt = length - 1;
 						if (current_level >= 15 || length == 0) {
 							quit = 1;
@@ -141,68 +175,105 @@ void game_loop() {
 			}
 		}
 		if (!quit) {
-			SDL_FillRect(screen, NULL, 0x000000);
 			if (x_pos >= GAME_COLUMNS + (underflow_ammt - 1))
 				left_or_right = -1;
 			if (x_pos <= 0) 
 				left_or_right = 1;
-			update_board(x_pos, length, current_level);
-			print_background();
-			print_board();
+			UpdateBoard(x_pos, length, current_level);
+			RenderBackground();
+			RenderBoard();
+			RenderCredit();
+			SDL_RenderPresent(renderer);
 			x_pos = x_pos + left_or_right;
 			SDL_Delay(time_delay);
 			SDL_UpdateWindowSurface(window);
 		}
+
+		SDL_RenderClear(renderer);
 	}
 }
 
-int main(int argc, char *argv[])
-{
-    /* Initialize SDL's video system and check for errors. */
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-		printf("Unable to initialize SDL: %s\n", SDL_GetError());
-		return 1;
+bool InitGame(){
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+		std::cout << "Unable to initialize SDL Video: " << SDL_GetError() << std::endl;
+		return false;
     }
 
-    /* Make sure SDL_Quit gets called when the program exits! */
-    atexit(SDL_Quit);
+	if (TTF_Init() != 0)
+	{
+		std::cout << "Unable to initialize TTF: " << TTF_GetError() << std::endl;
+		return false;
+	}
 
-	window = SDL_CreateWindow("SDL2 Window",
+	int imgFlags = IMG_InitFlags();
+
+	if (IMG_Init(imgFlags) & imgFlags)
+	{
+		std::cout << "Unable to initialize IMG: " << IMG_GetError() << std::endl;
+		return false;
+	}
+
+	window = SDL_CreateWindow("Stacker",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
                                           768, 1364,
                                           0);
 
     if (window == NULL) {
-		printf("Unable to set video mode: %s\n", SDL_GetError());
-		return 1;
+		std::cout << "Unable to set video mode: " << SDL_GetError() << std::endl;
+		return false;
     }
 
-	screen = SDL_GetWindowSurface(window);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    /* Load the bitmap file. SDL_LoadBMP returns a pointer to a
-       new surface containing the loaded image. */
-    block = SDL_LoadBMP("square.bmp");
-    background = SDL_LoadBMP("background.bmp");
-    prize = SDL_LoadBMP("prize.bmp");
+    block = LoadTexture("square.bmp", renderer);
+    background = LoadTexture("background.bmp", renderer);
+    prize = LoadTexture("prize.bmp", renderer);
+
     if (block == NULL) {
-		printf("Unable to load bitmap.\n");
-		return 1;
+		std::cout << "Unable to load bitmap block" << std::endl;
+		return false;
     }
 	if (background == NULL) {
-		printf("Unable to load bitmap.\n");
-		return 1;
+		std::cout << "Unable to load bitmap background" << std::endl;
+		return false;
     }
 	if (prize == NULL) {
-		printf("Unable to load bitmap prize.\n");
-		return 1;
+		std::cout << "Unable to load bitmap prize" << std::endl;
+		return false;
     }
-	game_loop();
 
-    /* Free the memory that was allocated to the bitmap. */
-    SDL_FreeSurface(block);
-    SDL_FreeSurface(background);
-    SDL_FreeSurface(prize);
+	return true;
+}
 
-    return 0;
+void CloseGame(){
+	SDL_DestroyWindow(window);
+	SDL_DestroyTexture(block);
+	SDL_DestroyTexture(background);
+	SDL_DestroyTexture(prize);
+
+	window = nullptr;
+	block = nullptr;
+	background = nullptr;
+	prize = nullptr;
+
+	SDL_DestroyTexture(textCredit);
+
+	textCredit = nullptr;
+
+	TTF_Quit();
+	IMG_Quit();
+	SDL_Quit();
+}
+
+int main(int argc, char *argv[])
+{
+	if(InitGame()){
+
+		GameLoop();
+
+		CloseGame();
+	}
+
+	return 0;
 }
