@@ -2,7 +2,9 @@
 #include <SDL2\SDL_image.h>
 #include <SDL2\SDL_mixer.h>
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <cctype>
 
 #define BASE_TIME_INTERVAL 150 /* in microseconds */
 #define SPEED_INCREASE 1.03
@@ -12,7 +14,11 @@
 #define MIN(a, b) ((a < b) ? a : b)
 #define MAX(a, b) ((a > b) ? a : b)
 
+#define CREDITS_LIMIT 99
+
 int array_matrix[GAME_ROWS][GAME_COLUMNS];
+
+unsigned int time;
 
 //States
 bool isPlaying = false;
@@ -32,11 +38,13 @@ SDL_Renderer *renderer;
 SDL_Texture *gBlock;
 SDL_Texture *gBackground;
 SDL_Texture *gPrize;
+SDL_Texture *gPanel;
 
 //Sound
 Mix_Chunk *sStart;
 Mix_Chunk *sPlace;
 Mix_Chunk *sCredit;
+Mix_Chunk *sGameOver;
 
 class GameBoard
 {
@@ -66,7 +74,7 @@ void GameBoard::RenderBoard() {
 				src.h = 65;
 
 				dest.x = j * 48 + 474;
-				dest.y = i * 40 + 282;
+				dest.y = i * 40 + 283;
 				dest.w = 45;
 				dest.h = 37;
 
@@ -104,7 +112,7 @@ GameBoard *Board;
 
 SDL_Texture *LoadTexture(std::string filePath, SDL_Renderer *renderTarget){
 	SDL_Texture *texture = nullptr;
-	SDL_Surface *surface = SDL_LoadBMP(filePath.c_str());
+	SDL_Surface *surface = IMG_Load(filePath.c_str());
 
 	if(surface == NULL)
 		std::cout << "Error in creating surface" << std::endl;
@@ -121,6 +129,19 @@ SDL_Texture *LoadTexture(std::string filePath, SDL_Renderer *renderTarget){
 
 void RenderBackground(){
     SDL_Rect src, dest;
+	SDL_Rect srcBack, destBack;
+
+
+	srcBack.x = 0;
+	srcBack.y = 0;
+	srcBack.w = 768; 
+	srcBack.h = 1363;
+
+	destBack.x = 0;
+	destBack.y = 0;
+	destBack.w = 768;
+	destBack.h = 1363;
+
 
 	src.x = 0;
 	src.y = 0;
@@ -128,11 +149,13 @@ void RenderBackground(){
 	src.h = 290;
 
 	dest.x = 55;
-	dest.y = 308;
+	dest.y = 310;
 	dest.w = 351;
 	dest.h = 290;
 
-	SDL_RenderCopy(renderer, gBackground, 0, 0);
+
+	SDL_RenderCopy(renderer, gBackground, &srcBack, &destBack);
+	SDL_RenderCopy(renderer, gPanel, 0, 0);
 	SDL_RenderCopy(renderer, gPrize, &src, &dest);
 }
 
@@ -152,7 +175,7 @@ int GetNewLength(int level) {
 				}
 			}
 		} 
-		if ((level == 4 && length == 3) || (level == 10 && length == 2)) {
+		if ((level == 8 && length == 3) || (level == 16 && length == 2)) {
 			length--;
 		}
 	}
@@ -160,6 +183,7 @@ int GetNewLength(int level) {
 }
 
 void GameOver(){
+	Mix_PlayChannel( -1, sGameOver, 0 );
 	isPlaying = false;
 	time_delay = BASE_TIME_INTERVAL;
 	left_or_right = 1;
@@ -192,9 +216,16 @@ void GameLoop() {
 						credits--;
 						isPlaying = true;
 					}
-					if (event.key.keysym.sym == SDLK_5 && credits < 9){
+					if (event.key.keysym.sym == SDLK_5 && credits < CREDITS_LIMIT){
 						Mix_PlayChannel( -1, sCredit, 0 );
 						credits++;
+
+						//Save
+						std::ofstream saveFile;
+						std::cout << "Credits: " << credits << std::endl;
+						saveFile.open ("save.txt");
+						saveFile << "Credits: " << credits;
+						saveFile.close();
 					}
 					if (event.key.keysym.sym == SDLK_ESCAPE)
 					{
@@ -217,6 +248,13 @@ void GameLoop() {
 			RenderBackground();
 			if (isPlaying)
 			{
+				if (time >= 60)
+				{
+					std::cout << "Passado tempo!" << std::endl;
+					time = 0;
+				}
+				time++;
+				std::cout << time << std::endl;
 				Board->UpdateBoard(x_pos, length, current_level);
 				Board->RenderBoard();
 			}
@@ -265,6 +303,7 @@ bool InitGame(){
 
     gBlock = LoadTexture("square.bmp", renderer);
     gBackground = LoadTexture("background.bmp", renderer);
+	gPanel = LoadTexture("game_panel.png", renderer);
     gPrize = LoadTexture("prize.bmp", renderer);
 
     if (gBlock == NULL) {
@@ -273,6 +312,10 @@ bool InitGame(){
     }
 	if (gBackground == NULL) {
 		std::cout << "Unable to load bitmap background" << std::endl;
+		return false;
+    }
+	if (gPanel == NULL) {
+		std::cout << "Unable to load bitmap game_panel" << std::endl;
 		return false;
     }
 	if (gPrize == NULL) {
@@ -298,6 +341,45 @@ bool InitGame(){
 		std::cout << "Failed to load credit sound effect! SDL_mixer Error: " << Mix_GetError() <<std::endl;
 		return false;
     }
+	sGameOver = Mix_LoadWAV( "game_over.wav");
+	if( sGameOver == NULL )
+    {
+		std::cout << "Failed to load game_over sound effect! SDL_mixer Error: " << Mix_GetError() <<std::endl;
+		return false;
+    }
+
+	std::string configText;
+
+	std::ifstream saveFile("save.txt");
+
+	if (saveFile == NULL)
+	{
+		std::cout << "No saved configurations was found. Creating configuration file..." << std::endl;
+		std::ofstream saveFile;
+		saveFile.open ("save.txt");
+		saveFile << "Creditos: " << credits;
+		saveFile.close();
+	}
+	else
+	{
+
+		while (getline (saveFile, configText)) {
+			std::cout << "Loaded saved configurations and credits." << std::endl;
+		}
+
+		saveFile.close(); 
+
+		std::string target;
+
+		for (char c : configText) {
+		if (std::isdigit(c)) target += c;
+		}
+
+		credits = std::stoi(target);
+
+	}
+
+
 
 	return true;
 }
@@ -307,6 +389,7 @@ void CloseGame(){
 	SDL_DestroyTexture(gBlock);
 	SDL_DestroyTexture(gBackground);
 	SDL_DestroyTexture(gPrize);
+	SDL_DestroyTexture(gPanel);
 
 	window = nullptr;
 	gBlock = nullptr;
@@ -316,6 +399,7 @@ void CloseGame(){
 	Mix_FreeChunk(sStart);
 	Mix_FreeChunk(sPlace);
 	Mix_FreeChunk(sCredit);
+	Mix_FreeChunk(sGameOver);
 
 	Mix_Quit();
 	IMG_Quit();
