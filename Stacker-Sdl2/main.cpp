@@ -1,14 +1,15 @@
-#include <SDL2\SDL.h>
-#include <SDL2\SDL_image.h>
-#include <SDL2\SDL_mixer.h>
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <cctype>
+#include <SDL2\SDL.h>
+#include <SDL2\SDL_image.h>
+#include <SDL2\SDL_mixer.h>
 
-#define BASE_TIME_INTERVAL 150 /* in microseconds */
-#define SPEED_INCREASE 1.03
-#define GAME_ROWS 26
+#define WINDOW_WIDTH 768
+#define WINDOW_HEIGHT 1364
+
+#define GAME_ROWS 25
 #define GAME_COLUMNS 5
 
 #define MIN(a, b) ((a < b) ? a : b)
@@ -18,18 +19,21 @@
 
 int array_matrix[GAME_ROWS][GAME_COLUMNS];
 
-unsigned int time;
-
 //States
 bool isPlaying = false;
+bool inConfig = false;
+uint8_t difficultyLevel = 5;
+int BASE_TIME_INTERVAL;
+float SPEED_INCREASE;
 int credits = 0;
 int time_delay = BASE_TIME_INTERVAL;
-int left_or_right = 1;
-int current_level = 1;
-int length = 3;
-int x_pos = 0;
+uint8_t left_or_right = 1;
+uint8_t current_level = 1;
+uint8_t length = 3;
+uint8_t x_pos = 0;
 bool quit = false;
-int underflow_ammt = length - 1;
+bool secondRound = false;
+uint8_t underflow_ammt = length - 1;
 
 //Images
 SDL_Window *window;
@@ -37,8 +41,11 @@ SDL_Renderer *renderer;
 
 SDL_Texture *gBlock;
 SDL_Texture *gBackground;
-SDL_Texture *gPrize;
+SDL_Texture *gPrizeA;
+SDL_Texture *gPrizeB;
 SDL_Texture *gPanel;
+SDL_Texture *gConfigPanel;
+SDL_Texture *gConfigBox;
 
 //Sound
 Mix_Chunk *sStart;
@@ -49,14 +56,10 @@ Mix_Chunk *sGameOver;
 class GameBoard
 {
 public:
-	GameBoard();
-	~GameBoard();
 	void RenderBoard();
 	void UpdateBoard(int x_pos, int length, int level);
 	void DeleteBoard();
 };
-
-GameBoard::~GameBoard() {}
 
 /* Use the array_matrix to  indicate where to blit red sqares on the board.
  * Also do some arithmetic to get them to print in the proper place, given
@@ -74,7 +77,7 @@ void GameBoard::RenderBoard() {
 				src.h = 65;
 
 				dest.x = j * 48 + 474;
-				dest.y = i * 40 + 283;
+				dest.y = i * 40 + 323;
 				dest.w = 45;
 				dest.h = 37;
 
@@ -127,21 +130,8 @@ SDL_Texture *LoadTexture(std::string filePath, SDL_Renderer *renderTarget){
 	return texture;
 }
 
-void RenderBackground(){
+void RenderPanel(){
     SDL_Rect src, dest;
-	SDL_Rect srcBack, destBack;
-
-
-	srcBack.x = 0;
-	srcBack.y = 0;
-	srcBack.w = 768; 
-	srcBack.h = 1363;
-
-	destBack.x = 0;
-	destBack.y = 0;
-	destBack.w = 768;
-	destBack.h = 1363;
-
 
 	src.x = 0;
 	src.y = 0;
@@ -153,10 +143,46 @@ void RenderBackground(){
 	dest.w = 351;
 	dest.h = 290;
 
-
-	SDL_RenderCopy(renderer, gBackground, &srcBack, &destBack);
 	SDL_RenderCopy(renderer, gPanel, 0, 0);
-	SDL_RenderCopy(renderer, gPrize, &src, &dest);
+	if (!secondRound)
+		SDL_RenderCopy(renderer, gPrizeA, &src, &dest);
+	else
+		SDL_RenderCopy(renderer, gPrizeB, &src, &dest);
+}
+
+
+void RenderConfig(){
+
+	SDL_Rect src, dest;
+
+	src.x = 0;
+	src.y = 0;
+	src.w = 337; 
+	src.h = 532;
+
+	dest.x = WINDOW_WIDTH / 3.5f;
+	dest.y = WINDOW_HEIGHT / 3.5f;
+	dest.w = 337;
+	dest.h = 532;
+
+	SDL_RenderCopy(renderer, gConfigPanel, &src, &dest);
+
+	SDL_Rect srcBox, destBox;
+
+	for (int i = 1; i < 6; i++)
+	{
+		srcBox.x = 0;
+		srcBox.y = 0;
+		srcBox.w = 40; 
+		srcBox.h = 40;
+
+		destBox.x = dest.x + (i * 60 - 30);
+		destBox.y = dest.y + 460;
+		destBox.w = 40;
+		destBox.h = 40;
+
+		SDL_RenderCopy(renderer, gConfigBox, &srcBox, &destBox);
+	}
 }
 
 /* Checks to see that there are blocks supporting the current level and returns
@@ -182,6 +208,43 @@ int GetNewLength(int level) {
 	return length;
 }
 
+void UpdateDifficult(){
+	
+	if (inConfig)
+		difficultyLevel++;
+
+	switch (difficultyLevel)
+	{
+		case 1:
+			BASE_TIME_INTERVAL = 145;
+			SPEED_INCREASE = 1.00f;
+			break;
+		case 2:
+			BASE_TIME_INTERVAL = 148;
+			SPEED_INCREASE = 1.02f;
+			break;
+		case 3:
+			BASE_TIME_INTERVAL = 150;
+			SPEED_INCREASE = 1.03f;
+			break;
+		case 4:
+			BASE_TIME_INTERVAL = 150;
+			SPEED_INCREASE = 1.05f;
+			break;
+		case 5:
+			BASE_TIME_INTERVAL = 150;
+			SPEED_INCREASE = 1.06f;
+			break;
+		case 6:
+			BASE_TIME_INTERVAL = 145;
+			SPEED_INCREASE = 1.00f;
+			difficultyLevel = 1;
+			break;
+	}
+
+	std::cout << "Difficult: " << difficultyLevel << std::endl;
+}
+
 void GameOver(){
 	Mix_PlayChannel( -1, sGameOver, 0 );
 	isPlaying = false;
@@ -191,6 +254,7 @@ void GameOver(){
 	length = 3;
 	x_pos = 0;
 	underflow_ammt = length - 1;
+	secondRound = false;
 	memset(array_matrix, 0, sizeof(array_matrix));
 }
 
@@ -201,17 +265,20 @@ void GameLoop() {
 		while (SDL_PollEvent(&event)) {
 			switch(event.type) {
 				case SDL_KEYDOWN: 
-					if (event.key.keysym.sym == SDLK_SPACE && isPlaying) {
+					if (event.key.keysym.sym == SDLK_SPACE && isPlaying && !inConfig) {
 						length = GetNewLength(current_level);
 						underflow_ammt = length - 1;
 						Mix_PlayChannel( -1, sPlace, 0 );
 						if (current_level >= GAME_ROWS || length == 0) {
 							GameOver();
 						}
+						if (current_level >= 16) {
+							secondRound = true;
+						}
 						current_level++;
 						time_delay = time_delay/SPEED_INCREASE;
 					}
-					if (event.key.keysym.sym == SDLK_1 && credits > 0){
+					if (event.key.keysym.sym == SDLK_1 && credits > 0 && !inConfig){
 						Mix_PlayChannel( -1, sStart, 0 );
 						credits--;
 						isPlaying = true;
@@ -226,6 +293,12 @@ void GameLoop() {
 						saveFile.open ("save.txt");
 						saveFile << "Credits: " << credits;
 						saveFile.close();
+					}
+					if (event.key.keysym.sym == SDLK_l && !isPlaying)
+						inConfig = !inConfig;
+					if (event.key.keysym.sym == SDLK_SPACE && inConfig && !isPlaying)
+					{
+						UpdateDifficult();
 					}
 					if (event.key.keysym.sym == SDLK_ESCAPE)
 					{
@@ -245,16 +318,13 @@ void GameLoop() {
 				left_or_right = -1;
 			if (x_pos <= 0) 
 				left_or_right = 1;
-			RenderBackground();
+			SDL_RenderCopy(renderer, gBackground, 0, 0);
+			if(inConfig)
+				RenderConfig();
+			else
+				RenderPanel();
 			if (isPlaying)
 			{
-				if (time >= 60)
-				{
-					std::cout << "Passado tempo!" << std::endl;
-					time = 0;
-				}
-				time++;
-				std::cout << time << std::endl;
 				Board->UpdateBoard(x_pos, length, current_level);
 				Board->RenderBoard();
 			}
@@ -291,7 +361,7 @@ bool InitGame(){
 	window = SDL_CreateWindow("Stacker",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
-                                          768, 1364,
+                                          WINDOW_WIDTH, WINDOW_HEIGHT,
                                           0);
 
     if (window == NULL) {
@@ -304,7 +374,10 @@ bool InitGame(){
     gBlock = LoadTexture("square.bmp", renderer);
     gBackground = LoadTexture("background.bmp", renderer);
 	gPanel = LoadTexture("game_panel.png", renderer);
-    gPrize = LoadTexture("prize.bmp", renderer);
+    gPrizeA = LoadTexture("prizeA.bmp", renderer);
+    gPrizeB = LoadTexture("prizeB.jpg", renderer);
+	gConfigPanel = LoadTexture("config_panel.png", renderer);
+	gConfigBox = LoadTexture("box.png", renderer);
 
     if (gBlock == NULL) {
 		std::cout << "Unable to load bitmap block" << std::endl;
@@ -315,11 +388,23 @@ bool InitGame(){
 		return false;
     }
 	if (gPanel == NULL) {
-		std::cout << "Unable to load bitmap game_panel" << std::endl;
+		std::cout << "Unable to load game_panel" << std::endl;
 		return false;
     }
-	if (gPrize == NULL) {
-		std::cout << "Unable to load bitmap prize" << std::endl;
+	if (gPrizeA == NULL) {
+		std::cout << "Unable to load bitmap prizeA" << std::endl;
+		return false;
+    }
+	if (gPrizeB == NULL) {
+		std::cout << "Unable to load bitmap prizeB" << std::endl;
+		return false;
+    }
+	if (gConfigPanel == NULL) {
+		std::cout << "Unable to load config_panel" << std::endl;
+		return false;
+    }
+	if (gConfigBox == NULL) {
+		std::cout << "Unable to load box" << std::endl;
 		return false;
     }
 
@@ -376,10 +461,9 @@ bool InitGame(){
 		}
 
 		credits = std::stoi(target);
-
 	}
 
-
+	UpdateDifficult();
 
 	return true;
 }
@@ -388,13 +472,13 @@ void CloseGame(){
 	SDL_DestroyWindow(window);
 	SDL_DestroyTexture(gBlock);
 	SDL_DestroyTexture(gBackground);
-	SDL_DestroyTexture(gPrize);
+	SDL_DestroyTexture(gPrizeA);
+	SDL_DestroyTexture(gPrizeB);
 	SDL_DestroyTexture(gPanel);
+	SDL_DestroyTexture(gConfigPanel);
+	SDL_DestroyTexture(gConfigBox);
 
 	window = nullptr;
-	gBlock = nullptr;
-	gBackground = nullptr;
-	gPrize = nullptr;
 
 	Mix_FreeChunk(sStart);
 	Mix_FreeChunk(sPlace);
