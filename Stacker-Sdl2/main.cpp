@@ -63,7 +63,7 @@ public:
 
 /* Use the array_matrix to  indicate where to blit red sqares on the board.
  * Also do some arithmetic to get them to print in the proper place, given
- * the size of each block is 65 */
+ * the size of each block is 45x37 */
 void GameBoard::RenderBoard() {
 	int i, j;
     SDL_Rect src, dest;
@@ -73,8 +73,8 @@ void GameBoard::RenderBoard() {
 			if (array_matrix[i][j] == 1) {
 				src.x = 0;
 				src.y = 0;
-				src.w = 65; 
-				src.h = 65;
+				src.w = 45; 
+				src.h = 37;
 
 				dest.x = j * 48 + 474;
 				dest.y = i * 40 + 323;
