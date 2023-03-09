@@ -63,7 +63,7 @@ Mix_Chunk *sPlace;
 Mix_Chunk *sCredit;
 Mix_Chunk *sGameOver;
 
-
+//Text
 TTF_Font* font;
 TTF_Font* fontText;
 SDL_Color colorText = { 0, 0, 0 };
