@@ -1,10 +1,12 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <cctype>
 #include <SDL2\SDL.h>
 #include <SDL2\SDL_image.h>
 #include <SDL2\SDL_mixer.h>
+#include <SDL2\SDL_ttf.h>
 
 #define WINDOW_WIDTH 768
 #define WINDOW_HEIGHT 1364
@@ -25,7 +27,10 @@ bool inConfig = false;
 uint8_t difficultyLevel = 5;
 int BASE_TIME_INTERVAL;
 float SPEED_INCREASE;
-int credits = 0;
+unsigned int credits = 0;
+unsigned int IN = 0; 
+unsigned int OUTA = 0; 
+unsigned int OUTB = 0; 
 int time_delay = BASE_TIME_INTERVAL;
 uint8_t left_or_right = 1;
 uint8_t current_level = 1;
@@ -45,13 +50,47 @@ SDL_Texture *gPrizeA;
 SDL_Texture *gPrizeB;
 SDL_Texture *gPanel;
 SDL_Texture *gConfigPanel;
-SDL_Texture *gConfigBox;
+
+SDL_Texture *gConfigBox1;
+SDL_Texture *gConfigBox2;
+SDL_Texture *gConfigBox3;
+SDL_Texture *gConfigBox4;
+SDL_Texture *gConfigBox5;
 
 //Sound
 Mix_Chunk *sStart;
 Mix_Chunk *sPlace;
 Mix_Chunk *sCredit;
 Mix_Chunk *sGameOver;
+
+
+TTF_Font* font;
+TTF_Font* fontText;
+SDL_Color colorText = { 0, 0, 0 };
+
+SDL_Surface* surface;
+SDL_Texture* texture;
+
+SDL_Surface* surfaceLevel1;
+SDL_Texture* textureLevel1;
+
+SDL_Surface* surfaceLevel2;
+SDL_Texture* textureLevel2;
+
+SDL_Surface* surfaceLevel3;
+SDL_Texture* textureLevel3;
+
+SDL_Surface* surfaceLevel4;
+SDL_Texture* textureLevel4;
+
+SDL_Surface* surfaceLevel5;
+SDL_Texture* textureLevel5;
+
+SDL_Surface* surfaceIN;
+SDL_Texture* textureIN;
+
+SDL_Surface* surfaceOUT;
+SDL_Texture* textureOUT;
 
 class GameBoard
 {
@@ -148,6 +187,14 @@ void RenderPanel(){
 		SDL_RenderCopy(renderer, gPrizeA, &src, &dest);
 	else
 		SDL_RenderCopy(renderer, gPrizeB, &src, &dest);
+
+	SDL_Rect dest_rect = { 292, 1258, surface->w, surface->h };
+	std::string s = std::to_string(credits);
+
+	surface = TTF_RenderText_Solid(font, s.c_str(), colorText);
+	texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+	SDL_RenderCopy(renderer, texture, NULL, &dest_rect);
 }
 
 
@@ -167,21 +214,152 @@ void RenderConfig(){
 
 	SDL_RenderCopy(renderer, gConfigPanel, &src, &dest);
 
-	SDL_Rect srcBox, destBox;
+	SDL_Rect destIN;
+	SDL_Rect destOUT;
+
+	destIN.x = WINDOW_WIDTH / 3.5f + 20;
+	destIN.y = WINDOW_HEIGHT / 3.5f + 35;
+	destIN.w = surfaceIN->w;
+	destIN.h = surfaceIN->h;
+
+	destOUT.x = WINDOW_WIDTH / 3.5f + 20;
+	destOUT.y = WINDOW_HEIGHT / 3.5f + 95;
+	destOUT.w = surfaceOUT->w;
+	destOUT.h = surfaceOUT->h;
+
+	std::string sIN = "Entrada: " + std::to_string(IN);
+	std::string sOUT = "Saída: " + std::to_string(OUTA);
+
+	surfaceIN = TTF_RenderText_Solid(fontText, sIN.c_str(), colorText);
+	textureIN = SDL_CreateTextureFromSurface(renderer, surfaceIN);
+
+	surfaceOUT = TTF_RenderText_Solid(fontText, sOUT.c_str(), colorText);
+	textureOUT = SDL_CreateTextureFromSurface(renderer, surfaceOUT);
+
+	SDL_RenderCopy(renderer, textureIN, NULL, &destIN);
+	SDL_RenderCopy(renderer, textureOUT, NULL, &destOUT);
+
+	SDL_Rect srcBox1, destBox1;
+	SDL_Rect srcBox2, destBox2;
+	SDL_Rect srcBox3, destBox3;
+	SDL_Rect srcBox4, destBox4;
+	SDL_Rect srcBox5, destBox5;
+
+	srcBox1.x = 0;
+	srcBox1.y = 0;
+	srcBox1.w = 40; 
+	srcBox1.h = 40;
+
+	destBox1.x = dest.x + (1 * 60 - 30);
+	destBox1.y = dest.y + 460;
+	destBox1.w = 40;
+	destBox1.h = 40;
+
+	srcBox2.x = 0;
+	srcBox2.y = 0;
+	srcBox2.w = 40; 
+	srcBox2.h = 40;
+
+	destBox2.x = dest.x + (2 * 60 - 30);
+	destBox2.y = dest.y + 460;
+	destBox2.w = 40;
+	destBox2.h = 40;
+
+	srcBox3.x = 0;
+	srcBox3.y = 0;
+	srcBox3.w = 40; 
+	srcBox3.h = 40;
+
+	destBox3.x = dest.x + (3 * 60 - 30);
+	destBox3.y = dest.y + 460;
+	destBox3.w = 40;
+	destBox3.h = 40;
+
+	srcBox4.x = 0;
+	srcBox4.y = 0;
+	srcBox4.w = 40; 
+	srcBox4.h = 40;
+
+	destBox4.x = dest.x + (4 * 60 - 30);
+	destBox4.y = dest.y + 460;
+	destBox4.w = 40;
+	destBox4.h = 40;
+
+	srcBox5.x = 0;
+	srcBox5.y = 0;
+	srcBox5.w = 40; 
+	srcBox5.h = 40;
+
+	destBox5.x = dest.x + (5 * 60 - 30);
+	destBox5.y = dest.y + 460;
+	destBox5.w = 40;
+	destBox5.h = 40;
+
+	srcBox5.x = 0;
+	srcBox5.y = 0;
+	srcBox5.w = 40; 
+	srcBox5.h = 40;
+
+	SDL_RenderCopy(renderer, gConfigBox1, &srcBox1, &destBox1);
+	SDL_RenderCopy(renderer, gConfigBox2, &srcBox2, &destBox2);
+	SDL_RenderCopy(renderer, gConfigBox3, &srcBox3, &destBox3);
+	SDL_RenderCopy(renderer, gConfigBox4, &srcBox4, &destBox4);
+	SDL_RenderCopy(renderer, gConfigBox5, &srcBox5, &destBox5);
+
+	switch (difficultyLevel)
+		{
+		case 1:
+			SDL_SetTextureColorMod(gConfigBox1, 255, 0, 0);
+			SDL_SetTextureColorMod(gConfigBox2, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox3, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox4, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox5, 255, 255, 255);
+			break;
+		case 2:
+			SDL_SetTextureColorMod(gConfigBox1, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox2, 255, 0, 0);
+			SDL_SetTextureColorMod(gConfigBox3, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox4, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox5, 255, 255, 255);
+			break;
+		case 3:
+			SDL_SetTextureColorMod(gConfigBox1, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox2, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox3, 255, 0, 0);
+			SDL_SetTextureColorMod(gConfigBox4, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox5, 255, 255, 255);
+			break;
+		case 4:
+			SDL_SetTextureColorMod(gConfigBox1, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox2, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox3, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox4, 255, 0, 0);
+			SDL_SetTextureColorMod(gConfigBox5, 255, 255, 255);
+			break;
+		case 5:
+			SDL_SetTextureColorMod(gConfigBox1, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox2, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox3, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox4, 255, 255, 255);
+			SDL_SetTextureColorMod(gConfigBox5, 255, 0, 0);
+			break;
+		}
 
 	for (int i = 1; i < 6; i++)
 	{
-		srcBox.x = 0;
-		srcBox.y = 0;
-		srcBox.w = 40; 
-		srcBox.h = 40;
+		SDL_Rect destText;
 
-		destBox.x = dest.x + (i * 60 - 30);
-		destBox.y = dest.y + 460;
-		destBox.w = 40;
-		destBox.h = 40;
+		destText.x = dest.x + (i * 60 - 20);
+		destText.y = dest.y + 460;
+		destText.w = surfaceLevel1->w;
+		destText.h = surfaceLevel1->h;
 
-		SDL_RenderCopy(renderer, gConfigBox, &srcBox, &destBox);
+		std::string s = std::to_string(i);
+
+		surface = TTF_RenderText_Solid(font, s.c_str(), colorText);
+		texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+		SDL_RenderCopy(renderer, texture, NULL, &destText);
 	}
 }
 
@@ -278,7 +456,7 @@ void GameLoop() {
 						current_level++;
 						time_delay = time_delay/SPEED_INCREASE;
 					}
-					if (event.key.keysym.sym == SDLK_1 && credits > 0 && !inConfig){
+					if (event.key.keysym.sym == SDLK_1 && credits > 0 && !inConfig && !isPlaying){
 						Mix_PlayChannel( -1, sStart, 0 );
 						credits--;
 						isPlaying = true;
@@ -286,6 +464,7 @@ void GameLoop() {
 					if (event.key.keysym.sym == SDLK_5 && credits < CREDITS_LIMIT){
 						Mix_PlayChannel( -1, sCredit, 0 );
 						credits++;
+						IN++;
 
 						//Save
 						std::ofstream saveFile;
@@ -344,6 +523,12 @@ bool InitGame(){
 		return false;
     }
 
+	if (TTF_Init() != 0)
+	{
+		std::cout << "Unable to initialize TTF: " << TTF_GetError() << std::endl;
+		return false;
+	}
+
 	int imgFlags = IMG_InitFlags();
 
 	if (IMG_Init(imgFlags) & imgFlags)
@@ -377,7 +562,11 @@ bool InitGame(){
     gPrizeA = LoadTexture("prizeA.bmp", renderer);
     gPrizeB = LoadTexture("prizeB.jpg", renderer);
 	gConfigPanel = LoadTexture("config_panel.png", renderer);
-	gConfigBox = LoadTexture("box.png", renderer);
+	gConfigBox1 = LoadTexture("box.png", renderer);
+	gConfigBox2 = LoadTexture("box.png", renderer);
+	gConfigBox3 = LoadTexture("box.png", renderer);
+	gConfigBox4 = LoadTexture("box.png", renderer);
+	gConfigBox5 = LoadTexture("box.png", renderer);
 
     if (gBlock == NULL) {
 		std::cout << "Unable to load bitmap block" << std::endl;
@@ -403,8 +592,24 @@ bool InitGame(){
 		std::cout << "Unable to load config_panel" << std::endl;
 		return false;
     }
-	if (gConfigBox == NULL) {
-		std::cout << "Unable to load box" << std::endl;
+	if (gConfigBox1 == NULL) {
+		std::cout << "Unable to load box1" << std::endl;
+		return false;
+    }
+	if (gConfigBox2 == NULL) {
+		std::cout << "Unable to load box2" << std::endl;
+		return false;
+    }
+	if (gConfigBox3 == NULL) {
+		std::cout << "Unable to load box3" << std::endl;
+		return false;
+    }
+	if (gConfigBox4 == NULL) {
+		std::cout << "Unable to load box4" << std::endl;
+		return false;
+    }
+	if (gConfigBox5 == NULL) {
+		std::cout << "Unable to load box5" << std::endl;
 		return false;
     }
 
@@ -431,6 +636,96 @@ bool InitGame(){
     {
 		std::cout << "Failed to load game_over sound effect! SDL_mixer Error: " << Mix_GetError() <<std::endl;
 		return false;
+    }
+
+	font = TTF_OpenFont("font.ttf", 40);
+    if (font == NULL) {
+        // Handle error
+    }
+
+	fontText = TTF_OpenFont("font.ttf", 30);
+    if (font == NULL) {
+        // Handle error
+    }
+
+	surface = TTF_RenderText_Solid(font, "00", colorText);
+	if (surface == NULL) {
+        // Handle error
+    }
+
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture == NULL) {
+        // Handle error
+    }
+
+	surfaceLevel1 = TTF_RenderText_Solid(font, "1", colorText);
+	if (surfaceLevel1 == NULL) {
+        // Handle error
+    }
+
+    textureLevel1 = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureLevel1 == NULL) {
+        // Handle error
+    }
+
+	surfaceLevel2 = TTF_RenderText_Solid(font, "2", colorText);
+	if (surfaceLevel2 == NULL) {
+        // Handle error
+    }
+
+    textureLevel2 = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureLevel2 == NULL) {
+        // Handle error
+    }
+
+	surfaceLevel3 = TTF_RenderText_Solid(font, "3", colorText);
+	if (surfaceLevel3 == NULL) {
+        // Handle error
+    }
+
+    textureLevel3 = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureLevel3 == NULL) {
+        // Handle error
+    }
+
+	surfaceLevel4 = TTF_RenderText_Solid(font, "4", colorText);
+	if (surfaceLevel4 == NULL) {
+        // Handle error
+    }
+
+    textureLevel4 = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureLevel4 == NULL) {
+        // Handle error
+    }
+
+	surfaceLevel5 = TTF_RenderText_Solid(font, "5", colorText);
+	if (surfaceLevel5 == NULL) {
+        // Handle error
+    }
+
+    textureLevel5 = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureLevel5 == NULL) {
+        // Handle error
+    }
+
+	surfaceIN = TTF_RenderText_Solid(font, "Entrada: ", colorText);
+	if (surfaceIN == NULL) {
+        // Handle error
+    }
+
+    textureIN = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureIN == NULL) {
+        // Handle error
+    }
+
+	surfaceOUT = TTF_RenderText_Solid(font, "Saída: ", colorText);
+	if (surfaceOUT == NULL) {
+        // Handle error
+    }
+
+    textureOUT = SDL_CreateTextureFromSurface(renderer, surface);
+    if (textureOUT == NULL) {
+        // Handle error
     }
 
 	std::string configText;
@@ -476,7 +771,11 @@ void CloseGame(){
 	SDL_DestroyTexture(gPrizeB);
 	SDL_DestroyTexture(gPanel);
 	SDL_DestroyTexture(gConfigPanel);
-	SDL_DestroyTexture(gConfigBox);
+	SDL_DestroyTexture(gConfigBox1);
+	SDL_DestroyTexture(gConfigBox2);
+	SDL_DestroyTexture(gConfigBox3);
+	SDL_DestroyTexture(gConfigBox4);
+	SDL_DestroyTexture(gConfigBox5);
 
 	window = nullptr;
 
@@ -484,6 +783,26 @@ void CloseGame(){
 	Mix_FreeChunk(sPlace);
 	Mix_FreeChunk(sCredit);
 	Mix_FreeChunk(sGameOver);
+
+	SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
+
+	SDL_DestroyTexture(textureLevel1);
+	SDL_FreeSurface(surfaceLevel1);
+
+	SDL_DestroyTexture(textureLevel2);
+    SDL_FreeSurface(surfaceLevel2);
+
+	SDL_DestroyTexture(textureLevel3);
+    SDL_FreeSurface(surfaceLevel3);
+
+	SDL_DestroyTexture(textureLevel4);
+    SDL_FreeSurface(surfaceLevel4);
+
+	SDL_DestroyTexture(textureLevel5);
+    SDL_FreeSurface(surfaceLevel5);
+
+    TTF_CloseFont(font);
 
 	Mix_Quit();
 	IMG_Quit();
