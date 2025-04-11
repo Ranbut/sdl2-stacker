@@ -53,4 +53,5 @@ dkms.conf
 
 Debug
 Stacker-Sdl2/Debug
+.vs
 Stacker-Sdl2.opensdf
